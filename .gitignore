@@ -2,7 +2,7 @@
 __pycache__/
 frontend/index1.html
 scrape_medlineplus_az.py
-phase8_rag.py
-phase8_rag_grok.py
+rag.py
+rag_grok.py
 data/processed/severity_dataset.csv
 data/medical_docs_html/
