@@ -1,91 +1,69 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MedAI | Healthcare Assistant</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<title>MedAI Assistant</title>
+<link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
 
-<nav class="navbar">
-    <div class="container">
-        <span class="logo"><i class="fas fa-hand-holding-medical"></i> MedAI Assistant</span>
+<div class="header">🩺 MedAI Assistant</div>
+
+<div class="container">
+
+    <!-- Symptom Analysis -->
+    <div class="card">
+        <div class="icon">🧠</div>
+        <h3>Symptom Analysis</h3>
+        <p>Describe how you're feeling for an AI-powered assessment.</p>
+
+        <textarea id="symptoms"
+                  placeholder="e.g., I have a persistent dry cough and mild fever..."></textarea>
+        <button onclick="analyze()">Analyze Symptoms</button>
+
+        <div id="analysisOutput" class="result" style="display:none;"></div>
+        <button id="downloadBtn"
+                style="display:none;"
+                onclick="downloadReport()">Download Report</button>
+
+        <!-- Follow-up Chat -->
+        <div id="chatSection" style="display:none; margin-top:20px;">
+            <h4>Follow-up Questions</h4>
+
+            <div id="chatBox"
+                 class="chat-container"
+                 style="max-height:150px; overflow-y:auto;"></div>
+
+            <input type="text"
+                   id="followupInput"
+                   placeholder="Ask a follow-up question..."
+                   style="margin-top:10px;" />
+
+            <button onclick="sendFollowUp()">Send</button>
+        </div>
     </div>
-</nav>
 
-<main class="container">
-    <section class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-stethoscope"></i> Symptom Analysis</h3>
-            <p>Describe how you're feeling for an AI-powered assessment.</p>
-        </div>
-        
-        <div class="input-group">
-            <label for="symptoms">Enter Symptoms</label>
-            <textarea id="symptoms" placeholder="e.g., I have a persistent dry cough and a mild fever for two days..."></textarea>
-        </div>
+    <!-- Medical Report Explainer -->
+    <div class="card">
+        <div class="icon">📄</div>
+        <h3>Medical Report Explainer</h3>
+        <p>Upload lab results or clinical notes for a simplified explanation.</p>
 
-        <button class="btn btn-primary" onclick="analyze()">
-            <i class="fas fa-wand-magic-sparkles"></i> Analyze Symptoms
-        </button>
+        <input type="file" id="reportFile">
+        <button onclick="uploadReport()">Explain Report</button>
 
-        <div id="analysisResult" class="result-area" style="display:none;">
-            <div id="severityBadge" class="badge"></div>
-            <div class="response-box">
-                <pre id="analysisResponse"></pre>
-            </div>
-            <button class="btn btn-secondary" onclick="downloadReport()">
-                <i class="fas fa-file-pdf"></i> Download Health Report
-            </button>
-        </div>
-    </section>
+        <div id="reportOutput" class="result" style="display:none;"></div>
+        <button id="downloadExplainBtn"
+                style="display:none;"
+                onclick="downloadExplainedReport()">Download Explanation</button>
+    </div>
 
-    <section class="card" id="chatSection" style="display:none;">
-        <div class="card-header">
-            <h3><i class="fas fa-comment-medical"></i> Clinical Follow-up</h3>
-        </div>
-        <div id="chatBox" class="chat-box"></div>
-        <div class="chat-input-wrapper">
-            <input type="text" id="followupInput" placeholder="Ask a follow-up question...">
-            <button class="btn btn-icon" onclick="sendFollowUp()">
-                <i class="fas fa-paper-plane"></i>
-            </button>
-        </div>
-    </section>
+</div>
 
-    <section class="card">
-        <div class="card-header">
-            <h3><i class="fas fa-file-medical-alt"></i> Medical Report Explainer</h3>
-            <p>Upload lab results or clinical notes for a simplified explanation.</p>
-        </div>
-        
-        <div class="file-upload">
-            <input type="file" id="reportFile" hidden>
-            <label for="reportFile" class="file-label">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <span>Choose a file or drag it here</span>
-            </label>
-        </div>
-
-        <button class="btn btn-outline" onclick="uploadReport()">Explain Report</button>
-
-        <div id="reportResult" class="result-area" style="display:none;">
-            <div class="response-box">
-                <pre id="reportExplanation"></pre>
-            </div>
-            <button id="downloadExplainedReportBtn" class="btn btn-secondary" onclick="downloadExplainedReport()">
-                <i class="fas fa-file-export"></i> Download Explanation
-            </button>
-        </div>
-    </section>
-
-    <footer class="disclaimer">
-        <p><strong>Educational Prototype Only:</strong> This tool is part of a research project. It does not provide medical diagnoses. Always consult a licensed doctor for health concerns.</p>
-    </footer>
-</main>
+<div class="disclaimer">
+Educational Use Only. This system does not provide medical diagnosis or treatment.
+</div>
 
 <script src="script.js"></script>
 </body>
