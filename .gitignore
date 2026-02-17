@@ -6,3 +6,4 @@ rag.py
 rag_grok.py
 data/processed/severity_dataset.csv
 data/medical_docs_html/
+reports/

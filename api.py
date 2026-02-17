@@ -9,10 +9,16 @@ from sentence_transformers import SentenceTransformer
 from groq import Groq
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from reportlab.platypus import SimpleDocTemplate, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 import uuid
 from pydantic import BaseModel
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer,
+    Image, Table, TableStyle
+)
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from datetime import datetime
 
 
 # -------------------------------
@@ -58,6 +64,9 @@ class ReportRequest(BaseModel):
     symptoms: str
     severity_level: str
     analysis: str
+
+class ExplanationRequest(BaseModel):
+    explanation: str
 
 # -------------------------------
 # Helper Functions
@@ -155,47 +164,123 @@ Rules:
 
 @app.post("/download-report")
 def download_report(request: ReportRequest):
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.lib.units import inch
-    import uuid, os
 
     os.makedirs("reports", exist_ok=True)
-    file_id = str(uuid.uuid4())
-    file_path = f"reports/symptom_report_{file_id}.pdf"
 
-    doc = SimpleDocTemplate(file_path)
+    unique_id = str(uuid.uuid4())[:6].upper()
+    timestamp = datetime.now()
+    report_id = f"MEDAI-{timestamp.strftime('%Y%m%d')}-{unique_id}"
+
+    file_path = f"reports/{report_id}.pdf"
+
+    # Better margins
+    doc = SimpleDocTemplate(
+        file_path,
+        rightMargin=50,
+        leftMargin=50,
+        topMargin=50,
+        bottomMargin=40
+    )
+
     styles = getSampleStyleSheet()
+
+    # Custom Styles
+    section_title = ParagraphStyle(
+        name='SectionTitle',
+        parent=styles['Heading2'],
+        spaceAfter=8
+    )
+
+    normal_text = styles["Normal"]
+
     content = []
 
-    content.append(Paragraph("<b>AI Healthcare Symptom Analysis Report</b>", styles["Title"]))
+    # ---------- HEADER TABLE ----------
+    header_data = []
+
+    if os.path.exists("logo.png"):
+        logo = Image("logo.png", width=1*inch, height=1*inch)
+    else:
+        logo = ""
+
+    header_text = Paragraph(
+        "<b>MedAI Healthcare System</b><br/>"
+        "AI-Powered Clinical Decision Support",
+        styles["Title"]
+    )
+
+    header_data.append([logo, header_text])
+
+    header_table = Table(header_data, colWidths=[1.2*inch, 4.5*inch])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+
+    content.append(header_table)
     content.append(Spacer(1, 0.3 * inch))
 
-    content.append(Paragraph(f"<b>Name:</b> {request.name}", styles["Normal"]))
+    # ---------- META ----------
+    content.append(Paragraph(
+        f"<b>Report ID:</b> {report_id}", normal_text))
+    content.append(Paragraph(
+        f"<b>Generated On:</b> {timestamp.strftime('%d %b %Y | %H:%M')}",
+        normal_text))
+
+    content.append(Spacer(1, 0.3 * inch))
+
+    # Divider
+    content.append(Table([[""]], colWidths=[6*inch],
+                         style=[('LINEABOVE', (0,0), (-1,-1), 1, colors.grey)]))
+    content.append(Spacer(1, 0.3 * inch))
+
+    # ---------- PATIENT INFO ----------
+    content.append(Paragraph("PATIENT INFORMATION", section_title))
+    content.append(Paragraph(f"<b>Name:</b> {request.name}", normal_text))
 
     if request.dob:
-        content.append(Paragraph(f"<b>Date of Birth:</b> {request.dob}", styles["Normal"]))
+        content.append(Paragraph(f"<b>Date of Birth:</b> {request.dob}", normal_text))
 
     if request.email:
-        content.append(Paragraph(f"<b>Email:</b> {request.email}", styles["Normal"]))
-
-    content.append(Spacer(1, 0.2 * inch))
-    content.append(Paragraph(f"<b>Symptoms:</b> {request.symptoms}", styles["Normal"]))
-    content.append(Paragraph(f"<b>Severity Level:</b> {request.severity_level}", styles["Normal"]))
-
-    content.append(Spacer(1, 0.2 * inch))
-    content.append(Paragraph("<b>Analysis:</b>", styles["Heading2"]))
-    content.append(Paragraph(request.analysis.replace("\n", "<br/>"), styles["Normal"]))
+        content.append(Paragraph(f"<b>Email:</b> {request.email}", normal_text))
 
     content.append(Spacer(1, 0.3 * inch))
+
+    # ---------- SYMPTOMS ----------
+    content.append(Paragraph("SYMPTOMS", section_title))
+    content.append(Paragraph(request.symptoms, normal_text))
+
+    content.append(Spacer(1, 0.2 * inch))
+
     content.append(Paragraph(
-        "Disclaimer: This report is for educational purposes only and does not replace professional medical advice.",
+        f"<b>Severity Level:</b> {request.severity_level}",
+        normal_text
+    ))
+
+    content.append(Spacer(1, 0.3 * inch))
+
+    # ---------- ANALYSIS ----------
+    content.append(Paragraph("CLINICAL ANALYSIS", section_title))
+    content.append(Spacer(1, 0.1 * inch))
+
+    formatted_analysis = request.analysis.replace("\n", "<br/>")
+    content.append(Paragraph(formatted_analysis, normal_text))
+
+    content.append(Spacer(1, 0.4 * inch))
+
+    # ---------- DISCLAIMER ----------
+    content.append(Table([[""]], colWidths=[6*inch],
+                         style=[('LINEABOVE', (0,0), (-1,-1), 1, colors.grey)]))
+    content.append(Spacer(1, 0.2 * inch))
+
+    content.append(Paragraph(
+        "Disclaimer: This report is generated by an AI system for educational "
+        "purposes only. It does not replace professional medical advice.",
         styles["Italic"]
     ))
 
     doc.build(content)
 
-    return FileResponse(file_path, filename="symptom_analysis_report.pdf")
+    return FileResponse(file_path, filename=f"{report_id}.pdf")
 
 
 @app.post("/explain-report")
@@ -246,36 +331,99 @@ Medical Report:
         }
     
 @app.post("/download-explained-report")
-def download_explained_report(payload: dict):
-    from reportlab.platypus import SimpleDocTemplate, Paragraph
-    from reportlab.lib.styles import getSampleStyleSheet
-    import uuid, os
-
-    explanation = payload.get("explanation", "")
-
-    if not explanation.strip():
-        return {"error": "No explanation provided"}
+def download_explained_report(request: ExplanationRequest):
 
     os.makedirs("reports", exist_ok=True)
-    file_id = str(uuid.uuid4())
-    file_path = f"reports/explained_report_{file_id}.pdf"
 
-    doc = SimpleDocTemplate(file_path)
+    unique_id = str(uuid.uuid4())[:6].upper()
+    timestamp = datetime.now()
+    report_id = f"MEDAI-REP-{timestamp.strftime('%Y%m%d')}-{unique_id}"
+
+    file_path = f"reports/{report_id}.pdf"
+
+    doc = SimpleDocTemplate(
+        file_path,
+        rightMargin=50,
+        leftMargin=50,
+        topMargin=50,
+        bottomMargin=40
+    )
+
     styles = getSampleStyleSheet()
+
+    section_title = ParagraphStyle(
+        name='SectionTitle',
+        parent=styles['Heading2'],
+        spaceAfter=8
+    )
+
+    normal_text = styles["Normal"]
+
     content = []
 
-    content.append(Paragraph("<b>Medical Report Explanation</b>", styles["Title"]))
+    # ---------- HEADER ----------
+    header_data = []
+
+    if os.path.exists("logo.png"):
+        logo = Image("logo.png", width=1*inch, height=1*inch)
+    else:
+        logo = ""
+
+    header_text = Paragraph(
+        "<b>MedAI Healthcare System</b><br/>"
+        "AI-Powered Medical Report Simplification",
+        styles["Title"]
+    )
+
+    header_data.append([logo, header_text])
+
+    header_table = Table(header_data, colWidths=[1.2*inch, 4.5*inch])
+    header_table.setStyle(TableStyle([
+        ('VALIGN', (0,0), (-1,-1), 'MIDDLE')
+    ]))
+
+    content.append(header_table)
+    content.append(Spacer(1, 0.3 * inch))
+
+    # ---------- META ----------
     content.append(Paragraph(
-        "This document provides a simplified explanation of an uploaded medical report.",
-        styles["Normal"]
-    ))
-    content.append(Paragraph("<br/><b>Explanation:</b>", styles["Heading2"]))
-    content.append(Paragraph(explanation.replace("\n", "<br/>"), styles["Normal"]))
+        f"<b>Report ID:</b> {report_id}", normal_text))
     content.append(Paragraph(
-        "<br/><i>Disclaimer: This explanation is for educational purposes only and does not replace professional medical advice.</i>",
+        f"<b>Generated On:</b> {timestamp.strftime('%d %b %Y | %H:%M')}",
+        normal_text))
+
+    content.append(Spacer(1, 0.3 * inch))
+
+    content.append(Table([[""]], colWidths=[6*inch],
+                         style=[('LINEABOVE', (0,0), (-1,-1), 1, colors.grey)]))
+    content.append(Spacer(1, 0.3 * inch))
+
+    # ---------- EXPLANATION ----------
+    content.append(Paragraph("MEDICAL REPORT EXPLANATION", section_title))
+    content.append(Spacer(1, 0.2 * inch))
+
+    for line in request.explanation.split("\n"):
+        if line.strip():
+            content.append(Paragraph(line.strip(), normal_text))
+            content.append(Spacer(1, 0.12 * inch))
+
+    content.append(Spacer(1, 0.4 * inch))
+
+    content.append(Table([[""]], colWidths=[6*inch],
+                         style=[('LINEABOVE', (0,0), (-1,-1), 1, colors.grey)]))
+    content.append(Spacer(1, 0.2 * inch))
+
+    content.append(Paragraph(
+        "Disclaimer: This explanation is generated by an AI system for "
+        "educational purposes only. It does not constitute medical diagnosis "
+        "or treatment. Always consult a licensed healthcare professional.",
         styles["Italic"]
     ))
 
     doc.build(content)
 
-    return FileResponse(file_path, filename="medical_report_explanation.pdf")
+    return FileResponse(
+        path=file_path,
+        filename=f"{report_id}.pdf",
+        media_type="application/pdf"
+    )
