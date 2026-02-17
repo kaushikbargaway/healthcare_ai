@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 import uuid
-
+from pydantic import BaseModel
 
 
 # -------------------------------
@@ -50,6 +50,14 @@ class FollowUpRequest(BaseModel):
     base_response: str
     severity_level: str
     user_question: str
+
+class ReportRequest(BaseModel):
+    name: str
+    dob: str | None = None
+    email: str | None = None
+    symptoms: str
+    severity_level: str
+    analysis: str
 
 # -------------------------------
 # Helper Functions
@@ -146,28 +154,49 @@ Rules:
     }
 
 @app.post("/download-report")
-def download_report(request: SymptomRequest):
-    # Reuse analyze logic
-    result = analyze_symptoms(request)
+def download_report(request: ReportRequest):
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import inch
+    import uuid, os
 
-    file_id = str(uuid.uuid4())
-    file_path = f"reports/{file_id}.pdf"
     os.makedirs("reports", exist_ok=True)
+    file_id = str(uuid.uuid4())
+    file_path = f"reports/symptom_report_{file_id}.pdf"
 
     doc = SimpleDocTemplate(file_path)
     styles = getSampleStyleSheet()
     content = []
 
-    content.append(Paragraph("<b>AI Healthcare Assistant – Health Summary Report</b>", styles["Title"]))
+    content.append(Paragraph("<b>AI Healthcare Symptom Analysis Report</b>", styles["Title"]))
+    content.append(Spacer(1, 0.3 * inch))
+
+    content.append(Paragraph(f"<b>Name:</b> {request.name}", styles["Normal"]))
+
+    if request.dob:
+        content.append(Paragraph(f"<b>Date of Birth:</b> {request.dob}", styles["Normal"]))
+
+    if request.email:
+        content.append(Paragraph(f"<b>Email:</b> {request.email}", styles["Normal"]))
+
+    content.append(Spacer(1, 0.2 * inch))
     content.append(Paragraph(f"<b>Symptoms:</b> {request.symptoms}", styles["Normal"]))
-    content.append(Paragraph(f"<b>Severity Level:</b> {result['severity_level']}", styles["Normal"]))
-    content.append(Paragraph("<b>Explanation:</b>", styles["Heading2"]))
-    content.append(Paragraph(result["response"].replace("\n", "<br/>"), styles["Normal"]))
-    content.append(Paragraph("<b>Disclaimer:</b> Educational use only. Consult a healthcare professional.", styles["Italic"]))
+    content.append(Paragraph(f"<b>Severity Level:</b> {request.severity_level}", styles["Normal"]))
+
+    content.append(Spacer(1, 0.2 * inch))
+    content.append(Paragraph("<b>Analysis:</b>", styles["Heading2"]))
+    content.append(Paragraph(request.analysis.replace("\n", "<br/>"), styles["Normal"]))
+
+    content.append(Spacer(1, 0.3 * inch))
+    content.append(Paragraph(
+        "Disclaimer: This report is for educational purposes only and does not replace professional medical advice.",
+        styles["Italic"]
+    ))
 
     doc.build(content)
 
-    return FileResponse(file_path, filename="health_report.pdf")
+    return FileResponse(file_path, filename="symptom_analysis_report.pdf")
+
 
 @app.post("/explain-report")
 def explain_medical_report(file: UploadFile = File(...)):

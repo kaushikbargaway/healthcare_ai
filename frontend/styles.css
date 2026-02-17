@@ -244,3 +244,22 @@ button:hover {
     align-self: flex-start;
     background: #e8efff;
 }
+
+.user-info-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.user-info-section label {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.user-info-section input {
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #d0d6e5;
+}
+

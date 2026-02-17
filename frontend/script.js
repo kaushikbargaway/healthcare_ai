@@ -21,17 +21,35 @@ async function analyze() {
     baseResponse = data.response;
 
     analysisHTML = `
-        <div class="result-card" id="analysisCard">
-            <h3>Symptom Analysis Result</h3>
-            <div class="${severityLevel.toLowerCase()}">
-                Severity Level: ${severityLevel}
-            </div>
-            <hr>
-            ${baseResponse.replace(/\n/g, "<br>")}
-            <br><br>
-            <button onclick="downloadReport()">Download Report</button>
+    <div class="result-card" id="analysisCard">
+        <h3>Symptom Analysis Result</h3>
+
+        <div class="user-info-section">
+            <label>Name *</label>
+            <input type="text" id="userName" placeholder="Enter your name" required>
+
+            <label>Date of Birth</label>
+            <input type="date" id="userDOB">
+
+            <label>Email</label>
+            <input type="email" id="userEmail" placeholder="Enter your email">
         </div>
-    `;
+
+        <hr>
+
+        <div class="${severityLevel.toLowerCase()}">
+            Severity Level: ${severityLevel}
+        </div>
+
+        <hr>
+
+        ${baseResponse.replace(/\n/g, "<br>")}
+
+        <br><br>
+        <button onclick="downloadReport()">Download Report</button>
+    </div>
+`;
+
 
     renderResults();
 }
@@ -125,3 +143,56 @@ async function sendFloatingMessage() {
 
     chatBox.scrollTop = chatBox.scrollHeight;
 }
+
+async function downloadReport() {
+    const name = document.getElementById("userName")?.value.trim();
+    const dob = document.getElementById("userDOB")?.value;
+    const email = document.getElementById("userEmail")?.value;
+    const symptoms = document.getElementById("symptoms").value;
+
+    if (!name) {
+        alert("Name is required before downloading the report.");
+        return;
+    }
+
+    const res = await fetch("http://127.0.0.1:8000/download-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            name: name,
+            dob: dob,
+            email: email,
+            symptoms: symptoms,
+            severity_level: severityLevel,
+            analysis: baseResponse
+        })
+    });
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "symptom_analysis_report.pdf";
+    a.click();
+}
+
+
+async function downloadExplainedReport() {
+    const res = await fetch("http://127.0.0.1:8000/download-explained-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            explanation: uploadedExplanation
+        })
+    });
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "medical_report_explanation.pdf";
+    a.click();
+}
+
