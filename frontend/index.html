@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>MedAI Assistant</title>
-<link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <title>MedAI Assistant</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
@@ -15,54 +15,55 @@
     <!-- Symptom Analysis -->
     <div class="card">
         <div class="icon">🧠</div>
-        <h3>Symptom Analysis</h3>
+        <h2><center>Symptom Analysis</center></h2>
         <p>Describe how you're feeling for an AI-powered assessment.</p>
 
         <textarea id="symptoms"
                   placeholder="e.g., I have a persistent dry cough and mild fever..."></textarea>
-        <button onclick="analyze()">Analyze Symptoms</button>
 
-        <div id="analysisOutput" class="result" style="display:none;"></div>
-        <button id="downloadBtn"
-                style="display:none;"
-                onclick="downloadReport()">Download Report</button>
-
-        <!-- Follow-up Chat -->
-        <div id="chatSection" style="display:none; margin-top:20px;">
-            <h4>Follow-up Questions</h4>
-
-            <div id="chatBox"
-                 class="chat-container"
-                 style="max-height:150px; overflow-y:auto;"></div>
-
-            <input type="text"
-                   id="followupInput"
-                   placeholder="Ask a follow-up question..."
-                   style="margin-top:10px;" />
-
-            <button onclick="sendFollowUp()">Send</button>
+        <div class="card-button">
+            <button onclick="analyze()">Analyze Symptoms</button>
         </div>
     </div>
 
     <!-- Medical Report Explainer -->
     <div class="card">
         <div class="icon">📄</div>
-        <h3>Medical Report Explainer</h3>
+        <h2><center>Medical Report Explainer</center></h2>
         <p>Upload lab results or clinical notes for a simplified explanation.</p>
 
         <input type="file" id="reportFile">
-        <button onclick="uploadReport()">Explain Report</button>
-
-        <div id="reportOutput" class="result" style="display:none;"></div>
-        <button id="downloadExplainBtn"
-                style="display:none;"
-                onclick="downloadExplainedReport()">Download Explanation</button>
+        <div class="card-button">
+            <button onclick="uploadReport()">Explain Report</button>
+        </div>
     </div>
 
 </div>
 
+<!-- Dynamic Result Area -->
+<div id="resultContainer" class="result-container"></div>
+
 <div class="disclaimer">
-Educational Use Only. This system does not provide medical diagnosis or treatment.
+    Educational Use Only. This system does not provide medical diagnosis or treatment.
+</div>
+
+<!-- Floating Chat -->
+<div id="chatIcon" onclick="toggleChat()">💬</div>
+
+<div id="chatWindow" class="chat-window">
+    <div class="chat-header">
+        AI Assistant
+        <span class="close-btn" onclick="toggleChat()">✖</span>
+    </div>
+
+    <div id="floatingChatBox" class="chat-body"></div>
+
+    <div class="chat-input-area">
+        <input type="text"
+               id="floatingInput"
+               placeholder="Ask a follow-up question..." />
+        <button onclick="sendFloatingMessage()">Send</button>
+    </div>
 </div>
 
 <script src="script.js"></script>

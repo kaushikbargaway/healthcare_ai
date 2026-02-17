@@ -2,7 +2,10 @@ let severityLevel = "";
 let baseResponse = "";
 let uploadedExplanation = "";
 
-/* Symptom Analysis */
+let analysisHTML = "";
+let reportHTML = "";
+
+/* SYMPTOM ANALYSIS */
 async function analyze() {
     const symptoms = document.getElementById("symptoms").value;
 
@@ -17,41 +20,25 @@ async function analyze() {
     severityLevel = data.severity_level;
     baseResponse = data.response;
 
-    const output = document.getElementById("analysisOutput");
-    output.style.display = "block";
-    output.innerHTML =
-        `<div class="${severityLevel.toLowerCase()}">
-            Severity: ${severityLevel}
-         </div><br>${baseResponse}`;
+    analysisHTML = `
+        <div class="result-card" id="analysisCard">
+            <h3>Symptom Analysis Result</h3>
+            <div class="${severityLevel.toLowerCase()}">
+                Severity Level: ${severityLevel}
+            </div>
+            <hr>
+            ${baseResponse.replace(/\n/g, "<br>")}
+            <br><br>
+            <button onclick="downloadReport()">Download Report</button>
+        </div>
+    `;
 
-    document.getElementById("downloadBtn").style.display = "inline-block";
-    document.getElementById("chatSection").style.display = "block";
-
+    renderResults();
 }
 
-/* Download Symptom Report */
-async function downloadReport() {
-    const symptoms = document.getElementById("symptoms").value;
-
-    const res = await fetch("http://127.0.0.1:8000/download-report", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ symptoms })
-    });
-
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "health_report.pdf";
-    a.click();
-}
-
-/* Upload Medical Report */
+/* REPORT EXPLAINER */
 async function uploadReport() {
-    const fileInput = document.getElementById("reportFile");
-    const file = fileInput.files[0];
+    const file = document.getElementById("reportFile").files[0];
     if (!file) return;
 
     const formData = new FormData();
@@ -63,48 +50,62 @@ async function uploadReport() {
     });
 
     const data = await res.json();
-
     uploadedExplanation = data.explanation;
 
-    const output = document.getElementById("reportOutput");
-    output.style.display = "block";
-    output.innerText = uploadedExplanation;
-
-    document.getElementById("downloadExplainBtn").style.display = "inline-block";
-}
-
-/* Download Explained Report */
-async function downloadExplainedReport() {
-    const res = await fetch("http://127.0.0.1:8000/download-explained-report", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ explanation: uploadedExplanation })
-    });
-
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "medical_report_explanation.pdf";
-    a.click();
-}
-
-/* Follow-up Chat */
-async function sendFollowUp() {
-    const question = document.getElementById("followupInput").value;
-    if (!question) return;
-
-    const chatBox = document.getElementById("chatBox");
-
-    // User bubble
-    chatBox.innerHTML += `
-        <div class="chat-bubble user-bubble">
-            ${question}
+    reportHTML = `
+        <div class="result-card" id="reportCard">
+            <h3>Medical Report Explanation</h3>
+            ${uploadedExplanation.replace(/\n/g, "<br>")}
+            <br><br>
+            <button onclick="downloadExplainedReport()">Download Explanation</button>
         </div>
     `;
 
-    document.getElementById("followupInput").value = "";
+    renderResults();
+}
+
+/* Render Logic */
+function renderResults() {
+    const container = document.getElementById("resultContainer");
+
+    if (analysisHTML && reportHTML) {
+        container.style.gridTemplateColumns = "1fr 1fr";
+        container.innerHTML = analysisHTML + reportHTML;
+    } else {
+        container.style.gridTemplateColumns = "1fr";
+        container.innerHTML = analysisHTML || reportHTML;
+    }
+}
+
+/* Floating Chat */
+function toggleChat() {
+    const chatWindow = document.getElementById("chatWindow");
+    chatWindow.style.display =
+        chatWindow.style.display === "flex" ? "none" : "flex";
+}
+
+async function sendFloatingMessage() {
+    const input = document.getElementById("floatingInput");
+    const message = input.value.trim();
+    if (!message) return;
+
+    const chatBox = document.getElementById("floatingChatBox");
+
+    chatBox.innerHTML += `
+        <div class="chat-bubble user-bubble">${message}</div>
+    `;
+
+    input.value = "";
+
+    if (!baseResponse) {
+        chatBox.innerHTML += `
+            <div class="chat-bubble bot-bubble">
+                Please analyze your symptoms first so I can provide accurate guidance.
+            </div>
+        `;
+        chatBox.scrollTop = chatBox.scrollHeight;
+        return;
+    }
 
     const res = await fetch("http://127.0.0.1:8000/followup", {
         method: "POST",
@@ -112,17 +113,14 @@ async function sendFollowUp() {
         body: JSON.stringify({
             base_response: baseResponse,
             severity_level: severityLevel,
-            user_question: question
+            user_question: message
         })
     });
 
     const data = await res.json();
 
-    // Assistant bubble
     chatBox.innerHTML += `
-        <div class="chat-bubble bot-bubble">
-            ${data.answer}
-        </div>
+        <div class="chat-bubble bot-bubble">${data.answer}</div>
     `;
 
     chatBox.scrollTop = chatBox.scrollHeight;
